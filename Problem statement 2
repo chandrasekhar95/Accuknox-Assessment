@@ -1,0 +1,250 @@
+1: System Health Monitoring Script:
+
+Python:
+
+import psutil
+import logging
+
+# Define thresholds
+CPU_THRESHOLD = 80  # Percentage
+MEMORY_THRESHOLD = 80  # Percentage
+DISK_THRESHOLD = 80  # Percentage
+
+# Setup logging
+logging.basicConfig(filename="system_health.log", level=logging.INFO, format="%(asctime)s - %(message)s")
+
+def check_cpu():
+    cpu_usage = psutil.cpu_percent(interval=1)
+    if cpu_usage > CPU_THRESHOLD:
+        logging.warning(f"High CPU usage detected: {cpu_usage}%")
+        print(f"Alert: CPU usage is high! {cpu_usage}%")
+    else:
+        logging.info(f"CPU usage is normal: {cpu_usage}%")
+
+def check_memory():
+    memory = psutil.virtual_memory()
+    if memory.percent > MEMORY_THRESHOLD:
+        logging.warning(f"High Memory usage detected: {memory.percent}%")
+        print(f"Alert: Memory usage is high! {memory.percent}%")
+    else:
+        logging.info(f"Memory usage is normal: {memory.percent}%")
+
+def check_disk():
+    disk = psutil.disk_usage('/')
+    if disk.percent > DISK_THRESHOLD:
+        logging.warning(f"Low Disk space detected: {disk.percent}% used")
+        print(f"Alert: Disk space usage is high! {disk.percent}% used")
+    else:
+        logging.info(f"Disk space usage is normal: {disk.percent}% used")
+
+def main():
+    print("Checking system health...")
+    check_cpu()
+    check_memory()
+    check_disk()
+    print("System health check complete. Check 'system_health.log' for details.")
+
+if __name__ == "__main__":
+    main()
+
+Run Script : python3 system_health.py
+
+2.Automated Backup Solution:
+
+#!/usr/bin/env python3
+
+import os
+import subprocess
+import logging
+from datetime import datetime
+
+# Configuration
+SOURCE_DIR = "/path/to/your/source_directory"  # Replace with the directory to back up
+REMOTE_USER = "remote_user"  # Replace with your remote server's username
+REMOTE_HOST = "remote_host"  # Replace with your remote server's address
+REMOTE_DIR = "/path/to/remote/backup_directory"  # Replace with the remote backup directory
+LOG_FILE = "backup_report.log"  # Log file to store backup reports
+
+# Setup logging
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+
+def backup_directory():
+    """Performs the backup using rsync."""
+    logging.info("Starting backup process...")
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    remote_path = f"{REMOTE_USER}@{REMOTE_HOST}:{REMOTE_DIR}/{timestamp}"
+
+    # Rsync command
+    rsync_command = [
+        "rsync",
+        "-avz",  # Archive mode, verbose, compressed
+        SOURCE_DIR,
+        remote_path,
+    ]
+
+    try:
+        # Execute the rsync command
+        result = subprocess.run(rsync_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode == 0:
+            logging.info(f"Backup completed successfully. Output:\n{result.stdout}")
+            print("Backup completed successfully.")
+        else:
+            logging.error(f"Backup failed. Error:\n{result.stderr}")
+            print("Backup failed. Check the log file for details.")
+    except Exception as e:
+        logging.error(f"An exception occurred during backup: {e}")
+        print("Backup failed due to an exception. Check the log file for details.")
+
+def main():
+    # Check if the source directory exists
+    if not os.path.exists(SOURCE_DIR):
+        print(f"Source directory does not exist: {SOURCE_DIR}")
+        logging.error(f"Source directory does not exist: {SOURCE_DIR}")
+
+Ensure password-less SSH access is set up between the local and remote servers.
+script :
+ssh-keygen -t rsa
+ssh-copy-id remote_user@remote_host
+Run Script :
+python3 automated_backup.py
+
+3. Log File Analyzer:
+
+#!/usr/bin/env python3
+
+import re
+from collections import Counter
+
+# Configuration
+LOG_FILE = "/path/to/your/webserver.log"  # Replace with the path to your log file
+
+def parse_log_file(log_file):
+    """Parses the log file and extracts necessary data."""
+    try:
+        with open(log_file, 'r') as file:
+            logs = file.readlines()
+    except FileNotFoundError:
+        print(f"Error: Log file '{log_file}' not found.")
+        return []
+
+    log_entries = []
+    log_pattern = re.compile(r'(\d+\.\d+\.\d+\.\d+) .*? "(GET|POST|HEAD) (.*?) HTTP.*?" (\d{3}) .*?')
+    
+    for line in logs:
+        match = log_pattern.search(line)
+        if match:
+            ip, method, url, status = match.groups()
+            log_entries.append((ip, method, url, status))
+    return log_entries
+
+def analyze_logs(log_entries):
+    """Analyzes log entries and extracts useful insights."""
+    ip_counter = Counter(entry[0] for entry in log_entries)
+    url_counter = Counter(entry[2] for entry in log_entries)
+    error_counter = Counter(entry[3] for entry in log_entries if entry[3].startswith('4') or entry[3].startswith('5'))
+
+    return {
+        "most_common_ips": ip_counter.most_common(5),
+        "most_requested_urls": url_counter.most_common(5),
+        "common_errors": error_counter.most_common(5)
+    }
+
+def display_report(analysis):
+    """Displays the analysis report."""
+    print("\n--- Log File Analysis Report ---")
+    
+    print("\nTop 5 IP Addresses:")
+    for ip, count in analysis['most_common_ips']:
+        print(f"{ip}: {count} requests")
+
+    print("\nTop 5 Requested URLs:")
+    for url, count in analysis['most_requested_urls']:
+        print(f"{url}: {count} requests")
+
+    print("\nTop 5 Error Status Codes:")
+    for status, count in analysis['common_errors']:
+        print(f"HTTP {status}: {count} occurrences")
+
+def main():
+    print("Analyzing log file...")
+    log_entries = parse_log_file(LOG_FILE)
+    if log_entries:
+        analysis = analyze_logs(log_entries)
+        display_report(analysis)
+    else:
+        print("No valid log entries found.")
+
+if __name__ == "__main__":
+    main()
+
+Run Script :
+python3 log_analyzer.py
+
+4. Application Health Checker Script:
+
+#!/usr/bin/env python3
+
+import requests
+from datetime import datetime
+
+# Configuration
+URLS = [
+    "http://localhost:8080",  # Replace with the URLs of your applications
+    "http://example.com/api",
+]  # Add more URLs as needed
+CHECK_INTERVAL = 60  # Time in seconds between checks
+
+def check_application(url):
+    """Check the health of the application."""
+    try:
+        response = requests.get(url, timeout=5)
+        status = "UP" if response.status_code == 200 else "DOWN"
+        return {
+            "url": url,
+            "status": status,
+            "http_code": response.status_code,
+            "timestamp": datetime.now(),
+        }
+    except requests.exceptions.RequestException as e:
+        return {
+            "url": url,
+            "status": "DOWN",
+            "http_code": None,
+            "timestamp": datetime.now(),
+            "error": str(e),
+        }
+
+def log_result(result):
+    """Log the result to the console."""
+    print("\n--- Application Health Check ---")
+    print(f"Timestamp: {result['timestamp']}")
+    print(f"URL: {result['url']}")
+    print(f"Status: {result['status']}")
+    if result['http_code']:
+        print(f"HTTP Code: {result['http_code']}")
+    if "error" in result:
+        print(f"Error: {result['error']}")
+
+def main():
+    print("Starting application health checker...")
+    for url in URLS:
+        result = check_application(url)
+        log_result(result)
+
+if __name__ == "__main__":
+    main()
+
+Run Script :
+python3 application_health_checker.py
+
+Libraries : 
+pip install requests
+
+
+
+
+
