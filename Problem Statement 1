@@ -1,0 +1,131 @@
+Problem Statement 1: 
+1. Dockerization: 
+
+# Use a lightweight base image
+FROM debian:bullseye-slim
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    cowsay \
+    fortune \
+    netcat \
+    && apt-get clean
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the script into the container
+COPY server.sh .
+
+# Make the script executable
+RUN chmod +x server.sh
+
+# Expose the required port
+EXPOSE 4499
+
+# Set the default command to run the script
+CMD ["./server.sh"]
+
+
+2. Kubernetes Deployment :
+
+Deployment YAML (deployment.yaml):
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wisecow-server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: wisecow-server
+  template:
+    metadata:
+      labels:
+        app: wisecow-server
+    spec:
+      containers:
+      - name: wisecow-container
+        image: <your-docker-registry>/wisecow-server:latest
+        ports:
+        - containerPort: 4499
+
+Service YAML (service.yaml):
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: wisecow-service
+spec:
+  selector:
+    app: wisecow-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 4499
+  type: LoadBalancer
+
+
+3.Continuous Integration and Deployment (CI/CD):
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Log in to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push Docker image
+      run: |
+        docker build -t <your-docker-registry>/wisecow-server:latest .
+        docker push <your-docker-registry>/wisecow-server:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Deploy to Kubernetes
+      env:
+        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+      run: |
+        kubectl apply -f k8s/
+
+4.TLS Implementation [Challenge Goal]:
+To enable secure communication with TLS:
+
+Use Cert-Manager and Let's Encrypt as outlined in the earlier example.
+Add an Ingress resource to handle HTTPS traffic
+
+5.Testing Locally
+Before pushing the container image:
+
+Run the script locally to ensure it works:
+bash
+
+chmod +x server.sh
+./server.sh
+
+Access the service at http://localhost:4499 in your browser or using curl.
+
+
+
+
